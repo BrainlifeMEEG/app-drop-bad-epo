@@ -1,63 +1,111 @@
+"""
+Drop bad epochs by index from epoched MEG/EEG data.
+
+This app removes specified epochs from an MNE Epochs object by their indices.
+Epoch indices to drop can be provided either from a file or as a comma-separated
+list in the configuration.
+
+Inputs:
+    - mne: Path to MNE epochs .fif file
+    - events: Optional path to file containing comma-separated epoch indices to drop
+    - drop: Optional comma-separated string of epoch indices to drop
+
+Outputs:
+    - out_dir/meg-epo.fif: Epochs file with specified epochs removed
+    - out_dir/info.txt: Summary of dropped epochs
+    - product.json: Metadata about dropped epochs
+"""
+
 # Copyright (c) 2020 brainlife.io
 #
 # This app drops bad epochs by index in a MNE/epochs file.
 
-# set up environment
+import sys
 import os
-import json
-import numpy as np
-import mne
-import helper
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'brainlife_utils'))
+
+# Standard imports
 import re
+import mne
 
+# Import shared utilities
+from brainlife_utils import (
+    load_config,
+    setup_matplotlib_backend,
+    ensure_output_dirs,
+    create_product_json,
+    add_info_to_product
+)
 
-# load inputs from config.json
-with open('config.json') as config_json:
-	config =  helper.convert_parameters_to_None(json.load(config_json))
+# Set up matplotlib for headless execution
+setup_matplotlib_backend()
 
+# Ensure output directories exist
+ensure_output_dirs('out_dir')
+
+# Load configuration
+config = load_config()
+
+# == LOAD DATA ==
 data_file = config['mne']
+epochs = mne.read_epochs(data_file, verbose=False)
+print(f'Loaded {len(epochs)} epochs')
 
-epochs = mne.read_epochs(data_file,verbose=False)
+# == COLLECT INDICES TO DROP ==
+todrop1 = []
 
-# read config['events'] only if events is a key in config
-if 'events' not in config:
-	todrop1 = []
+# Read indices from file if provided
+if config.get('events') and config['events'] != 'None':
+    try:
+        with open(config['events']) as f:
+            todrop1 = f.read()
+        # Turn todrop1 into a list of strings and remove leading/trailing whitespace
+        todrop1 = todrop1.split(',')
+        # Remove leading and trailing whitespace or commas in the list
+        todrop1 = [re.sub(r'^\s*|\s*$', '', x) for x in todrop1]
+        # Remove empty strings
+        todrop1 = list(filter(None, todrop1))
+        # Convert to integers
+        todrop1 = [int(x) for x in todrop1]
+        print(f'Read {len(todrop1)} epoch indices from file: {config["events"]}')
+    except Exception as e:
+        print(f'Warning: Could not read events file: {e}')
+        todrop1 = []
+
+# Parse drop parameter if provided
+todrop2 = []
+if config.get('drop') and config['drop'] != 'None':
+    try:
+        todrop2 = config['drop'].split(',')
+        todrop2 = [int(x.strip()) for x in todrop2 if x.strip()]
+        print(f'Read {len(todrop2)} epoch indices from config: {todrop2}')
+    except Exception as e:
+        print(f'Warning: Could not parse drop parameter: {e}')
+        todrop2 = []
+
+# Create union of todrop1 and todrop2 (remove duplicates)
+todrop = sorted(list(set(todrop1) | set(todrop2)))
+
+# == DROP EPOCHS ==
+if todrop:
+    print(f'Dropping {len(todrop)} epochs: {todrop}')
+    epochs.drop(todrop)
+    msg = f'Dropped {len(todrop)} epochs: {todrop}'
+    add_info_to_product(msg)
 else:
-	with open(config['events']) as f:
-		todrop1 = f.read()
-	# turn todrop1 into a list of strings and remove leading and trailing whitespace or commas
-	todrop1 = todrop1.split(',')
-	# turn it to integers
-	# remove leading and trailing whitespace or commas in the list
-	todrop1 = [re.sub(r'^\s*|\s*$', '', x) for x in todrop1]
-	# remove empty strings
-	todrop1 = list(filter(None, todrop1))
-	todrop1 = [int(x) for x in todrop1]
+    print('No epochs to drop')
+    add_info_to_product('No epochs dropped')
 
-# if config['drop'] is not None, read it and add to todrop
-if config['drop'] is not None:
-	todrop2 = config['drop'].split(',')
-	todrop2 = [int(x) for x in todrop2]
-else:
-    todrop2 = []
+print(f'Remaining epochs: {len(epochs)}')
 
-# create union of todrop1 and todrop2
-todrop = list(set(todrop1) | set(todrop2))
+# == SAVE PROCESSED EPOCHS ==
+epochs.save(os.path.join('out_dir', 'meg-epo.fif'), overwrite=True)
 
-epochs.drop(todrop)
-epochs.save(os.path.join('out_dir','meg-epo.fif'), overwrite=True)
+# == SAVE INFO TEXT FILE ==
+info_text = f'Dropped epochs: {todrop}\nRemaining epochs: {len(epochs)}'
+with open(os.path.join('out_dir', 'info.txt'), 'w') as f:
+    f.write(info_text)
 
-# create string with rejected epochs
-info = 'Dropped epochs: ' + str(todrop)
-#Save the info into a info.txt file
-with open(os.path.join('out_dir','info.txt'), 'w') as f:
-    print(info, file=f)
-
-# create a product.json file to show the output
-dict_json_product = {'brainlife': []}
-
-info = str(info)
-dict_json_product['brainlife'].append({'type': 'info', 'msg': info})
-
-with open('product.json', 'w') as outfile:
-    json.dump(dict_json_product, outfile)
+# == CREATE PRODUCT.JSON ==
+create_product_json()
+add_info_to_product(f'Total epochs dropped: {len(todrop)}', 'success')
