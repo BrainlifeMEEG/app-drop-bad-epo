@@ -16,9 +16,12 @@ Outputs:
     - product.json: Metadata about dropped epochs
 """
 
-# Copyright (c) 2020 brainlife.io
+# Copyright (c) 2026 brainlife.io
 #
-# This app drops bad epochs by index in a MNE/epochs file.
+# Drop bad epochs from MNE epochs file by index.
+#
+# Authors:
+# - Maximilien Chaumon (https://github.com/dnacombo)
 
 import sys
 import os
