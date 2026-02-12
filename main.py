@@ -90,14 +90,15 @@ if config.get('drop') and config['drop'] != 'None':
 todrop = sorted(list(set(todrop1) | set(todrop2)))
 
 # == DROP EPOCHS ==
+product_items = []
 if todrop:
     print(f'Dropping {len(todrop)} epochs: {todrop}')
     epochs.drop(todrop)
     msg = f'Dropped {len(todrop)} epochs: {todrop}'
-    add_info_to_product(msg)
+    add_info_to_product(product_items,msg)
 else:
     print('No epochs to drop')
-    add_info_to_product('No epochs dropped')
+    add_info_to_product(product_items,'No epochs dropped')
 
 print(f'Remaining epochs: {len(epochs)}')
 
@@ -110,5 +111,5 @@ with open(os.path.join('out_dir', 'info.txt'), 'w') as f:
     f.write(info_text)
 
 # == CREATE PRODUCT.JSON ==
-create_product_json()
-add_info_to_product(f'Total epochs dropped: {len(todrop)}', 'success')
+add_info_to_product(product_items,f'Total epochs dropped: {len(todrop)}', 'success')
+create_product_json(product_items)
