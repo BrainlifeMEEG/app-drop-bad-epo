@@ -25,6 +25,7 @@ Outputs:
 
 import sys
 import os
+import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'brainlife_utils'))
 
 # Standard imports
@@ -54,6 +55,17 @@ data_file = config['mne']
 epochs = mne.read_epochs(data_file, verbose=False)
 print(f'Loaded {len(epochs)} epochs')
 
+product_items = []
+
+# get already discarded bad epochs for info
+all_reasons = set(reason for idx, reason in epochs.drop_log)
+already_bad = [int(idx) for idx, reason in epochs.drop_log]
+
+print(f'Previously, {all_reasons} epochs were already dropped.')
+if already_bad:
+    add_info_to_product(product_items,f'Previously dropped epochs {all_reasons}', 'info')
+
+
 # == COLLECT INDICES TO DROP ==
 todrop1 = []
 
@@ -71,6 +83,12 @@ if config.get('events') and config['events'] != 'None':
         # Convert to integers
         todrop1 = [int(x) for x in todrop1]
         print(f'Read {len(todrop1)} epoch indices from file: {config["events"]}')
+        add_info_to_product(product_items,f'Read {len(todrop1)} epoch indices from file: {config["events"]}', 'info')
+        todrop_epochs = epochs[todrop1]
+        fig = todrop_epochs.plot(picks='data',n_epochs=40, n_channels=30, title='Dropped epochs',
+                events=True, butterfly=True)
+        fig.savefig(os.path.join('out_dir', 'dropped_from_file.png'))
+        plt.close(fig)
     except Exception as e:
         print(f'Warning: Could not read events file: {e}')
         todrop1 = []
@@ -82,18 +100,32 @@ if config.get('drop') and config['drop'] != 'None':
         todrop2 = config['drop'].split(',')
         todrop2 = [int(x.strip()) for x in todrop2 if x.strip()]
         print(f'Read {len(todrop2)} epoch indices from config: {todrop2}')
+        add_info_to_product(product_items,f'Read {len(todrop2)} epoch indices from user input: {todrop2}', 'info')
+        todrop_epochs = epochs[todrop2]
+        fig = todrop_epochs.plot(picks='data',n_epochs=40, n_channels=30, title='Dropped epochs',
+                events=True, butterfly=True)
+        fig.savefig(os.path.join('out_dir', 'dropped_from_config.png'))
+        plt.close(fig)
     except Exception as e:
         print(f'Warning: Could not parse drop parameter: {e}')
         todrop2 = []
 
-# Create union of todrop1 and todrop2 (remove duplicates)
+# Create union of all drops
 todrop = sorted(list(set(todrop1) | set(todrop2)))
 
+# plot epochs before dropping
+fig = epochs.plot(picks='data',n_epochs=40, n_channels=30, title='Epochs before dropping',
+            events=True, butterfly=True,)
+fig.savefig(os.path.join('out_dir', 'before_dropping.png'))
+plt.close(fig)
 # == DROP EPOCHS ==
-product_items = []
 if todrop:
     print(f'Dropping {len(todrop)} epochs: {todrop}')
     epochs.drop(todrop)
+    fig = epochs.plot(picks='data',n_epochs=20, n_channels=30, title='Remaining epochs after dropping',
+            events=True, butterfly=True)
+    fig.savefig(os.path.join('out_dir', 'epochs.png'))
+    plt.close(fig)
     msg = f'Dropped {len(todrop)} epochs: {todrop}'
     add_info_to_product(product_items,msg)
 else:
