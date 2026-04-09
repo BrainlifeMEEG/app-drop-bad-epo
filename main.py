@@ -38,10 +38,10 @@ from brainlife_utils import (
     setup_matplotlib_backend,
     ensure_output_dirs,
     create_product_json,
-    add_info_to_product
+    add_info_to_product,
+    add_image_to_product
 )
 
-# Set up matplotlib for headless execution
 setup_matplotlib_backend()
 
 # Ensure output directories exist
@@ -58,11 +58,11 @@ print(f'Loaded {len(epochs)} epochs')
 product_items = []
 
 # get already discarded bad epochs for info
-all_reasons = set(reason for idx, reason in epochs.drop_log)
-already_bad = [int(idx) for idx, reason in epochs.drop_log]
+all_reasons = set(reason[0] for reason in epochs.drop_log if reason)
+already_bad = [int(idx) for idx, reason in enumerate(epochs.drop_log) if reason]
 
-print(f'Previously, {all_reasons} epochs were already dropped.')
 if already_bad:
+    print(f'Previously, {all_reasons} epochs were already dropped.')
     add_info_to_product(product_items,f'Previously dropped epochs {all_reasons}', 'info')
 
 
@@ -85,10 +85,9 @@ if config.get('events') and config['events'] != 'None':
         print(f'Read {len(todrop1)} epoch indices from file: {config["events"]}')
         add_info_to_product(product_items,f'Read {len(todrop1)} epoch indices from file: {config["events"]}', 'info')
         todrop_epochs = epochs[todrop1]
-        fig = todrop_epochs.plot(picks='data',n_epochs=40, n_channels=30, title='Dropped epochs',
-                events=True, butterfly=True)
-        fig.savefig(os.path.join('out_dir', 'dropped_from_file.png'))
-        plt.close(fig)
+        fig = todrop_epochs.plot_image(picks = 'data', combine='gfp', show=False)
+        fig[0].savefig(os.path.join('out_dir', 'epochs_dropped_from_file.png'))
+        plt.close(fig[0])
     except Exception as e:
         print(f'Warning: Could not read events file: {e}')
         todrop1 = []
@@ -102,10 +101,9 @@ if config.get('drop') and config['drop'] != 'None':
         print(f'Read {len(todrop2)} epoch indices from config: {todrop2}')
         add_info_to_product(product_items,f'Read {len(todrop2)} epoch indices from user input: {todrop2}', 'info')
         todrop_epochs = epochs[todrop2]
-        fig = todrop_epochs.plot(picks='data',n_epochs=40, n_channels=30, title='Dropped epochs',
-                events=True, butterfly=True)
-        fig.savefig(os.path.join('out_dir', 'dropped_from_config.png'))
-        plt.close(fig)
+        fig = todrop_epochs.plot_image(picks = 'data', combine='gfp', show=False)
+        fig[0].savefig(os.path.join('out_dir', 'epochs_dropped_from_config.png'))
+        plt.close(fig[0])
     except Exception as e:
         print(f'Warning: Could not parse drop parameter: {e}')
         todrop2 = []
@@ -114,18 +112,18 @@ if config.get('drop') and config['drop'] != 'None':
 todrop = sorted(list(set(todrop1) | set(todrop2)))
 
 # plot epochs before dropping
-fig = epochs.plot(picks='data',n_epochs=40, n_channels=30, title='Epochs before dropping',
-            events=True, butterfly=True,)
-fig.savefig(os.path.join('out_dir', 'before_dropping.png'))
-plt.close(fig)
+fig = epochs.plot_image(picks = 'data', combine='gfp', show=False)
+fig[0].savefig(os.path.join('out_dir', 'epochs_before_dropping.png'))
+plt.close(fig[0])
 # == DROP EPOCHS ==
 if todrop:
     print(f'Dropping {len(todrop)} epochs: {todrop}')
     epochs.drop(todrop)
-    fig = epochs.plot(picks='data',n_epochs=20, n_channels=30, title='Remaining epochs after dropping',
-            events=True, butterfly=True)
-    fig.savefig(os.path.join('out_dir', 'epochs.png'))
-    plt.close(fig)
+    fig = epochs.plot_image(picks = 'data', combine='gfp', show=False)
+    # fig = epochs.plot(picks='data',n_epochs=40, title='Remaining epochs after dropping',
+    #         events=True, butterfly=True, show=False)
+    fig[0].savefig(os.path.join('out_dir', 'epochs_after_dropping.png'))
+    plt.close(fig[0])
     msg = f'Dropped {len(todrop)} epochs: {todrop}'
     add_info_to_product(product_items,msg)
 else:
@@ -144,4 +142,7 @@ with open(os.path.join('out_dir', 'info.txt'), 'w') as f:
 
 # == CREATE PRODUCT.JSON ==
 add_info_to_product(product_items,f'Total epochs dropped: {len(todrop)}', 'success')
+# add the three figures to product
+add_image_to_product(product_items, name='Epochs before dropping', filepath=os.path.join('out_dir', 'epochs_before_dropping.png'))
+add_image_to_product(product_items, name='Epochs after dropping', filepath=os.path.join('out_dir', 'epochs_after_dropping.png'))
 create_product_json(product_items)
