@@ -45,7 +45,7 @@ from brainlife_utils import (
 setup_matplotlib_backend()
 
 # Ensure output directories exist
-ensure_output_dirs('out_dir')
+ensure_output_dirs('out_dir', 'out_report')
 
 # Load configuration
 config = load_config()
@@ -54,6 +54,10 @@ config = load_config()
 data_file = config['mne']
 epochs = mne.read_epochs(data_file, verbose=False)
 print(f'Loaded {len(epochs)} epochs')
+
+# == CREATE REPORT ==
+report = mne.Report(title='Drop Bad Epochs Report')
+report.add_epochs(epochs=epochs, title='Original Epochs before Dropping')
 
 product_items = []
 
@@ -117,6 +121,9 @@ fig[0].savefig(os.path.join('out_dir', 'epochs_before_dropping.png'))
 plt.close(fig[0])
 # == DROP EPOCHS ==
 if todrop:
+    todrop_epochs = epochs[todrop]
+    report.add_epochs(epochs=todrop_epochs, title='Dropped Epochs')
+
     print(f'Dropping {len(todrop)} epochs: {todrop}')
     epochs.drop(todrop)
     fig = epochs.plot_image(picks = 'data', combine='gfp', show=False)
@@ -139,6 +146,22 @@ epochs.save(os.path.join('out_dir', 'meg-epo.fif'), overwrite=True)
 info_text = f'Dropped epochs: {todrop}\nRemaining epochs: {len(epochs)}'
 with open(os.path.join('out_dir', 'info.txt'), 'w') as f:
     f.write(info_text)
+
+# Add epochs visualization
+report.add_epochs(epochs=epochs, title='Remaining Epochs After Dropping')
+
+# Add drop statistics
+report.add_html(
+    title='Drop Summary',
+    html=f'<div>'
+         f'Total epochs dropped: {len(todrop)}<br>'
+         f'Remaining epochs: {len(epochs)}<br>'
+         f'Dropped indices: {todrop}'
+         f'</div>'
+)
+
+# Save report
+report.save(os.path.join('out_report', 'report.html'), overwrite=True)
 
 # == CREATE PRODUCT.JSON ==
 add_info_to_product(product_items,f'Total epochs dropped: {len(todrop)}', 'success')
