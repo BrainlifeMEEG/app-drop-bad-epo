@@ -167,5 +167,6 @@ report.save(os.path.join('out_report', 'report.html'), overwrite=True)
 add_info_to_product(product_items,f'Total epochs dropped: {len(todrop)}', 'success')
 # add the three figures to product
 add_image_to_product(product_items, name='Epochs before dropping', filepath=os.path.join('out_dir', 'epochs_before_dropping.png'))
-add_image_to_product(product_items, name='Epochs after dropping', filepath=os.path.join('out_dir', 'epochs_after_dropping.png'))
+if todrop:
+    add_image_to_product(product_items, name='Epochs after dropping', filepath=os.path.join('out_dir', 'epochs_after_dropping.png'))
 create_product_json(product_items)
