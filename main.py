@@ -134,6 +134,20 @@ fig = epochs.plot_image(picks='data', combine='gfp', show=False)
 fig[0].savefig(os.path.join('out_dir', 'epochs_before_dropping.png'))
 plt.close(fig[0])
 # == DROP EPOCHS ==
+# DEBUG
+print(f'Number of epochs: {len(epochs)}')
+print(f'epochs.selection[:5]: {epochs.selection[:5]}')
+print(f'epochs.selection[344]: {epochs.selection[344]}')
+print(f'todrop: {todrop}')
+for idx in todrop:
+    print(f'  todrop index {idx} → original selection: {epochs.selection[idx]}')
+# DEBUG
+print(f'Number of epochs: {len(epochs)}')
+print(f'epochs.selection[:5]: {epochs.selection[:5]}')
+print(f'epochs.selection[344]: {epochs.selection[344]}')
+print(f'todrop: {todrop}')
+for idx in todrop:
+    print(f'  todrop index {idx} → original selection: {epochs.selection[idx]}')
 if todrop:
     todrop_epochs = epochs[todrop]
     report.add_epochs(epochs=todrop_epochs, title='Dropped Epochs')
