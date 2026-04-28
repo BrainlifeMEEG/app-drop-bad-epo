@@ -137,31 +137,38 @@ plt.close(fig[0])
 if todrop:
     todrop_epochs = epochs[todrop]
     report.add_epochs(epochs=todrop_epochs, title='Dropped Epochs')
-    # == PLOT EPOCHS TO BE DROPPED FOR VERIFICATION ==
+
+    # == PLOT EACH EPOCH TO DROP BEFORE DROP ==
     os.makedirs(os.path.join('out_dir', 'epochs_to_drop'), exist_ok=True)
     for idx in todrop:
         if idx < len(epochs):
-            fig = epochs[idx].plot(
-                picks=['E233'],
-                show=False,
-                title=f'Epoch {idx} - event_id: {epochs[idx].events[0][2]}'
-            )
-            fig.savefig(os.path.join('out_dir', 'epochs_to_drop', f'epoch_{idx:04d}.png'))
+            fig = epochs[idx].plot(picks=['E233'], show=False, title=f'epoch {idx} BEFORE drop')
+            fig.savefig(os.path.join('out_dir', 'epochs_to_drop', f'epoch_{idx:04d}_before.png'))
             plt.close(fig)
+
     # NOW drop
     print(f'Dropping {len(todrop)} epochs: {todrop}')
     epochs.drop(todrop)
-    # GFP plot after dropping — use new variable name
+
+    # == PLOT SAME INDICES AFTER DROP ==
+    for idx in todrop:
+        if idx < len(epochs):
+            fig = epochs[idx].plot(picks=['E233'], show=False, title=f'epoch {idx} AFTER drop')
+            fig.savefig(os.path.join('out_dir', 'epochs_to_drop', f'epoch_{idx:04d}_after.png'))
+            plt.close(fig)
+
+    # GFP plot after dropping
     gfp_fig = epochs.plot_image(picks='data', combine='gfp', show=False)
     gfp_fig[0].savefig(os.path.join('out_dir', 'epochs_after_dropping.png'))
     plt.close(gfp_fig[0])
+
     msg = f'Dropped {len(todrop)} epochs: {todrop}'
     add_info_to_product(product_items, msg)
 else:
     print('No epochs to drop')
     add_info_to_product(product_items, 'No epochs dropped')
-print(f'Remaining epochs: {len(epochs)}')
 
+print(f'Remaining epochs: {len(epochs)}')
 print(f'Current epoch count: {len(epochs)}')
 print(f'Drop log length: {len(epochs.drop_log)}')
 
