@@ -11,7 +11,7 @@ Inputs:
     - drop: Optional comma-separated string of epoch indices to drop
 
 Outputs:
-    - out_dir/meg-epo.fif: Epochs file with specified epochs removed
+    - out_dir/epo.fif: Epochs file with specified epochs removed
     - out_dir/info.txt: Summary of dropped epochs
     - product.json: Metadata about dropped epochs
 """
@@ -39,7 +39,8 @@ from brainlife_utils import (
     ensure_output_dirs,
     create_product_json,
     add_info_to_product,
-    add_image_to_product
+    add_image_to_product,
+    require_config_keys
 )
 
 setup_matplotlib_backend()
@@ -49,6 +50,7 @@ ensure_output_dirs('out_dir', 'out_report')
 
 # Load configuration
 config = load_config()
+require_config_keys(config, ['mne'])
 
 # == LOAD DATA ==
 data_file = config['mne']
@@ -140,7 +142,7 @@ else:
 print(f'Remaining epochs: {len(epochs)}')
 
 # == SAVE PROCESSED EPOCHS ==
-epochs.save(os.path.join('out_dir', 'meg-epo.fif'), overwrite=True)
+epochs.save(os.path.join('out_dir', 'epo.fif'), overwrite=True)
 
 # == SAVE INFO TEXT FILE ==
 info_text = f'Dropped epochs: {todrop}\nRemaining epochs: {len(epochs)}'

@@ -15,7 +15,7 @@ Drops (rejects) bad epochs from MNE Epochs files by their indices using MNE-Pyth
 
 ## Outputs
 
-- **out_dir/meg-epo.fif**: Epochs file with bad epochs removed
+- **out_dir/epo.fif**: Epochs file with bad epochs removed
 - **out_dir/info.txt**: Summary of dropped epochs
 - **product.json**: Metadata with epoch information
 
