@@ -142,7 +142,7 @@ else:
 print(f'Remaining epochs: {len(epochs)}')
 
 # == SAVE PROCESSED EPOCHS ==
-epochs.save(os.path.join('out_dir', 'epo.fif'), overwrite=True)
+epochs.save(os.path.join('out_dir', 'meg-epo.fif'), overwrite=True)
 
 # == SAVE INFO TEXT FILE ==
 info_text = f'Dropped epochs: {todrop}\nRemaining epochs: {len(epochs)}'
